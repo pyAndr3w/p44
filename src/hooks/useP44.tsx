@@ -1,25 +1,65 @@
+import { log } from "console";
 import { useEffect, useState } from "react";
-import { Cell, BOC, Address, Bit, Slice, Builder, HashmapE } from "ton3-core";
+import { Cell, BOC, Address, Bit, Slice, Builder, HashmapE, Hashmap } from "ton3-core";
 
-type getConfigParamResponse = {
-    boc: string,
-    param: number
+
+type getAccountDataResponse = {
+    "data": {
+        "blockchain": {
+            "account": {
+                "info": {
+                    "data": string
+                }
+            }
+        }
+    }
 }
 
-const getConfigParam = async (paramId: number) => {
-    
-    const proxy = "https://cors-anywhere.herokuapp.com/";
-    const response = await fetch(
-        `${proxy}https://everspace.center/everscale/getConfigParams?number=${paramId}`,
-        {
-            method: 'GET',
-            headers: {
-                "X-API-KEY": "b17a652df5d642a6aa6e9dae4601685a",
-                "Access-Control-Allow-Origin": "*",
+
+const getAccountData = async (address: Address): Promise<Cell> => {
+    const query = `
+        query {
+            blockchain {
+                account(address: "${address.toString('raw')}") {
+                    info {
+                        data
+                    }
+                }
             }
+        }
+    `;
+
+    const response = await fetch(
+        "https://mainnet.evercloud.dev/fc5b8eb8cac649908ce13df2077bf51e/graphql",
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: query })
         });
-    const json = await response.json() as getConfigParamResponse;
-    return json;
+
+    const json = await response.json() as getAccountDataResponse;
+    return BOC.from(json.data.blockchain.account.info.data).root[0];
+}
+
+
+const getConfigParams = async (): Promise<{[key:number]: Cell}> => {
+    const configContractData = await getAccountData(new Address("-1:5555555555555555555555555555555555555555555555555555555555555555"));
+    const deserializers = {
+        key: (k: Bit[]): number => { 
+            return new Builder().storeBits(k).cell().slice().loadUint(32);
+        },
+        value: (v: Cell) => v,
+    };
+    const parsed: [number, Cell][] = [...Hashmap.parse(32, configContractData.refs[0].slice(), { deserializers })];
+    return parsed.reduce((acc, [k, v]) => ({...acc, [k]: v}), {});
+}
+
+
+const getConfigParam = async (paramId: number) => {
+    const params = await getConfigParams();
+    return params[paramId];
 }
 
 
@@ -43,9 +83,8 @@ export default () => {
     const [p44, setP44] = useState<Address[]>([]);
 
     const updateConfig = async () => {
-        const response = await getConfigParam(44);
-        const cell = BOC.from(response.boc).root[0];
-        setConfig(cell);
+        const param = await getConfigParam(44);
+        setConfig(param);
     };
 
     const updateP44 = async () => {

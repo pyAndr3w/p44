@@ -13,6 +13,7 @@ function App() {
                             className="active fs-18"
                             href={`https://everscan.io/accounts/${addrStr}`}
                             target='_blank'
+                            key={idx}
                         >
                             {`${idx} | ${addrStr}`}
                         </a>
