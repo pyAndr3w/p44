@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,6 +20,7 @@
     "ton3-core": "^1.0.1"
   },
   "devDependencies": {
+    "@types/node": "^20.2.1",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
